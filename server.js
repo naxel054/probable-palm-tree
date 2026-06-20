@@ -7,6 +7,11 @@ const PORT = process.env.PORT || 8080;
 app.use(express.json());
 app.use(express.static(__dirname));
 
+// Healthcheck pour Railway
+app.get('/health', (req, res) => {
+  res.status(200).send('OK');
+});
+
 app.post('/api/chat', async (req, res) => {
   const { messages } = req.body;
 
@@ -47,17 +52,18 @@ Règles de réponse :
     const data = await response.json();
 
     if (data.error) {
+      console.error('Erreur Groq:', data.error);
       return res.status(500).json({ error: data.error.message });
     }
 
     res.json({ reply: data.choices[0].message.content });
 
   } catch (err) {
-    console.error('Erreur API:', err);
+    console.error('Erreur serveur:', err);
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`CraftBot lancé sur le port ${PORT}`);
 });
