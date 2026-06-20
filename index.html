@@ -1,505 +1,243 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>CraftBot — Assistant IA pour ton serveur Minecraft</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg: #0d1117;
-      --surface: #161b22;
-      --surface2: #1c2330;
-      --border: #30363d;
-      --green: #39d353;
-      --green-dim: #1a4a28;
-      --dirt: #8B5E3C;
-      --stone: #8a8a8a;
-      --text: #e6edf3;
-      --muted: #7d8590;
-      --user-bubble: #1f4d2e;
-      --ai-bubble: #1c2330;
-      --radius: 12px;
-    }
+<!-- ============================================================
+  WIDGET IA — colle ce bloc juste avant la balise </body>
+  dans ton index.html
+=============================================================== -->
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+<!-- Bouton flottant -->
+<button id="ia-toggle" onclick="toggleIA()" title="Aide IA">
+  🤖 IA
+</button>
 
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Inter', sans-serif;
-      height: 100dvh;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    /* ── HEADER ── */
-    header {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 14px 20px;
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      flex-shrink: 0;
-    }
-
-    .logo {
-      width: 40px;
-      height: 40px;
-      image-rendering: pixelated;
-      flex-shrink: 0;
-    }
-
-    .header-info h1 {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 12px;
-      color: var(--green);
-      letter-spacing: 0px;
-      line-height: 1.4;
-    }
-
-    .header-info p {
-      font-size: 11px;
-      color: var(--muted);
-      margin-top: 3px;
-    }
-
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      background: var(--green);
-      border-radius: 50%;
-      margin-left: auto;
-      box-shadow: 0 0 8px var(--green);
-      animation: pulse 2s infinite;
-      flex-shrink: 0;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
-    }
-
-    /* ── SUGGESTIONS ── */
-    .suggestions {
-      padding: 10px 16px;
-      display: flex;
-      gap: 8px;
-      overflow-x: auto;
-      scrollbar-width: none;
-      border-bottom: 1px solid var(--border);
-      flex-shrink: 0;
-      background: var(--surface);
-    }
-    .suggestions::-webkit-scrollbar { display: none; }
-
-    .chip {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 5px 12px;
-      font-size: 11px;
-      color: var(--muted);
-      cursor: pointer;
-      white-space: nowrap;
-      transition: border-color 0.15s, color 0.15s;
-      flex-shrink: 0;
-    }
-    .chip:hover {
-      border-color: var(--green);
-      color: var(--green);
-    }
-
-    /* ── CHAT AREA ── */
-    #chat {
-      flex: 1;
-      overflow-y: auto;
-      padding: 20px 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      scrollbar-width: thin;
-      scrollbar-color: var(--border) transparent;
-    }
-
-    .message {
-      display: flex;
-      gap: 10px;
-      max-width: 720px;
-      width: 100%;
-    }
-
-    .message.user { align-self: flex-end; flex-direction: row-reverse; }
-    .message.ai   { align-self: flex-start; }
-
-    .avatar {
-      width: 32px;
-      height: 32px;
-      border-radius: 6px;
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
-      image-rendering: pixelated;
-    }
-
-    .avatar.ai-avatar {
-      background: var(--green-dim);
-      border: 1px solid var(--green);
-    }
-
-    .avatar.user-avatar {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-    }
-
-    .bubble {
-      padding: 12px 15px;
-      border-radius: var(--radius);
-      font-size: 14px;
-      line-height: 1.65;
-      max-width: calc(100% - 50px);
-    }
-
-    .message.user .bubble {
-      background: var(--user-bubble);
-      border: 1px solid #2d6a3f;
-      border-bottom-right-radius: 3px;
-    }
-
-    .message.ai .bubble {
-      background: var(--ai-bubble);
-      border: 1px solid var(--border);
-      border-bottom-left-radius: 3px;
-    }
-
-    .bubble code {
-      background: #0d1117;
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 1px 6px;
-      font-size: 12px;
-      font-family: monospace;
-      color: var(--green);
-    }
-
-    .bubble pre {
-      background: #0d1117;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 12px;
-      overflow-x: auto;
-      margin-top: 10px;
-    }
-
-    .bubble pre code {
-      background: none;
-      border: none;
-      padding: 0;
-      font-size: 13px;
-    }
-
-    .bubble strong { color: var(--green); }
-
-    .typing {
-      display: flex;
-      gap: 4px;
-      align-items: center;
-      padding: 14px 16px;
-    }
-    .typing span {
-      width: 7px;
-      height: 7px;
-      background: var(--green);
-      border-radius: 50%;
-      animation: bounce 1.2s infinite;
-    }
-    .typing span:nth-child(2) { animation-delay: 0.2s; }
-    .typing span:nth-child(3) { animation-delay: 0.4s; }
-
-    @keyframes bounce {
-      0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
-      30% { transform: translateY(-6px); opacity: 1; }
-    }
-
-    /* ── INPUT ── */
-    .input-area {
-      padding: 12px 16px 16px;
-      background: var(--surface);
-      border-top: 1px solid var(--border);
-      flex-shrink: 0;
-    }
-
-    .input-wrap {
-      display: flex;
-      align-items: flex-end;
-      gap: 10px;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 8px 10px;
-      transition: border-color 0.2s;
-    }
-    .input-wrap:focus-within { border-color: var(--green); }
-
-    #userInput {
-      flex: 1;
-      background: none;
-      border: none;
-      outline: none;
-      color: var(--text);
-      font-family: 'Inter', sans-serif;
-      font-size: 14px;
-      resize: none;
-      max-height: 120px;
-      line-height: 1.5;
-    }
-    #userInput::placeholder { color: var(--muted); }
-
-    #sendBtn {
-      width: 36px;
-      height: 36px;
-      background: var(--green);
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      transition: opacity 0.15s, transform 0.1s;
-    }
-    #sendBtn:hover { opacity: 0.85; }
-    #sendBtn:active { transform: scale(0.92); }
-    #sendBtn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-    #sendBtn svg { width: 18px; height: 18px; fill: #0d1117; }
-
-    .hint {
-      font-size: 10px;
-      color: var(--muted);
-      text-align: center;
-      margin-top: 8px;
-    }
-
-    /* ── SCROLLBAR ── */
-    #chat::-webkit-scrollbar { width: 6px; }
-    #chat::-webkit-scrollbar-track { background: transparent; }
-    #chat::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-
-    /* Grass block SVG logo inline */
-  </style>
-</head>
-<body>
-
-<header>
-  <!-- Pixel art grass block SVG -->
-  <svg class="logo" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-    <rect width="16" height="16" fill="#8B5E3C"/>
-    <rect y="0" width="16" height="5" fill="#5c9e2e"/>
-    <rect x="0" y="4" width="16" height="2" fill="#4a7c1f"/>
-    <rect x="1" y="0" width="1" height="2" fill="#6ab830"/>
-    <rect x="4" y="0" width="1" height="3" fill="#6ab830"/>
-    <rect x="8" y="0" width="1" height="2" fill="#6ab830"/>
-    <rect x="12" y="0" width="1" height="3" fill="#6ab830"/>
-    <rect x="0" y="6" width="16" height="10" fill="#7a4f2e"/>
-    <rect x="0" y="8" width="16" height="1" fill="#6b4426" opacity="0.5"/>
-    <rect x="0" y="12" width="16" height="1" fill="#6b4426" opacity="0.5"/>
-  </svg>
-  <div class="header-info">
-    <h1>CraftBot IA</h1>
-    <p>Assistant pour ton serveur Minecraft</p>
+<!-- Fenêtre de chat -->
+<div id="ia-panel">
+  <div id="ia-header">
+    <span>🤖 Assistant IA</span>
+    <button onclick="toggleIA()" id="ia-close">✕</button>
   </div>
-  <div class="status-dot"></div>
-</header>
-
-<div class="suggestions">
-  <div class="chip" onclick="sendChip(this)">🔧 Configurer un plugin</div>
-  <div class="chip" onclick="sendChip(this)">⚔️ Commandes admin</div>
-  <div class="chip" onclick="sendChip(this)">🛡️ Protéger les zones</div>
-  <div class="chip" onclick="sendChip(this)">👥 Gérer les joueurs</div>
-  <div class="chip" onclick="sendChip(this)">📦 Installer Spigot / Paper</div>
-  <div class="chip" onclick="sendChip(this)">⚡ Optimiser les performances</div>
-  <div class="chip" onclick="sendChip(this)">🗺️ Créer un monde custom</div>
-  <div class="chip" onclick="sendChip(this)">💬 Configurer un chat</div>
-</div>
-
-<div id="chat">
-  <!-- Message de bienvenue -->
-  <div class="message ai">
-    <div class="avatar ai-avatar">⛏️</div>
-    <div class="bubble">
-      <strong>Salut !</strong> Je suis <strong>CraftBot</strong>, ton IA spécialisée dans les serveurs Minecraft. 👋<br><br>
-      Je peux t'aider avec :<br>
-      • Installer et configurer des <strong>plugins</strong> (EssentialsX, WorldGuard…)<br>
-      • Les <strong>commandes</strong> admin et de modération<br>
-      • Optimiser les <strong>performances</strong> du serveur<br>
-      • Gérer les <strong>permissions</strong> et les joueurs<br>
-      • Configurer ton <strong>server.properties</strong><br><br>
-      Pose-moi n'importe quelle question sur ton serveur ! 🎮
+  <div id="ia-messages">
+    <div class="ia-msg ia-ai">
+      Salut ! Je suis l'assistant IA de ce panel. Je peux t'expliquer comment utiliser le panel, gérer tes serveurs Minecraft, les permissions, les commandes... Pose-moi n'importe quelle question ! ⛏️
     </div>
   </div>
+  <div id="ia-input-area">
+    <input type="text" id="ia-input" placeholder="Ex: Comment démarrer un serveur ?" onkeydown="if(event.key==='Enter') sendIA()" />
+    <button onclick="sendIA()" id="ia-send">➤</button>
+  </div>
 </div>
 
-<div class="input-area">
-  <div class="input-wrap">
-    <textarea id="userInput" rows="1" placeholder="Ex: Comment installer WorldGuard sur Paper ?"></textarea>
-    <button id="sendBtn" onclick="sendMessage()">
-      <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
-    </button>
-  </div>
-  <p class="hint">Entrée pour envoyer · Shift+Entrée pour aller à la ligne</p>
-</div>
+<style>
+  #ia-toggle {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: #16a34a;
+    color: white;
+    border: none;
+    border-radius: 50px;
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(22,163,74,0.4);
+    z-index: 9999;
+    transition: transform 0.2s, opacity 0.2s;
+  }
+  #ia-toggle:hover { transform: scale(1.05); }
+
+  #ia-panel {
+    display: none;
+    position: fixed;
+    bottom: 80px;
+    right: 24px;
+    width: 360px;
+    height: 480px;
+    background: #1a1a2e;
+    border: 1px solid #2d2d4e;
+    border-radius: 16px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+    z-index: 9998;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  #ia-panel.open { display: flex; }
+
+  #ia-header {
+    background: #16a34a;
+    padding: 14px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 700;
+    color: white;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  #ia-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+    line-height: 1;
+  }
+
+  #ia-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    scrollbar-width: thin;
+    scrollbar-color: #2d2d4e transparent;
+  }
+
+  .ia-msg {
+    padding: 10px 13px;
+    border-radius: 12px;
+    font-size: 13px;
+    line-height: 1.55;
+    max-width: 90%;
+    white-space: pre-wrap;
+  }
+  .ia-ai {
+    background: #242444;
+    border: 1px solid #2d2d4e;
+    align-self: flex-start;
+    border-bottom-left-radius: 3px;
+    color: #e2e8f0;
+  }
+  .ia-user {
+    background: #15532e;
+    border: 1px solid #166534;
+    align-self: flex-end;
+    border-bottom-right-radius: 3px;
+    color: #dcfce7;
+  }
+  .ia-typing {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    padding: 12px 14px;
+  }
+  .ia-typing span {
+    width: 6px; height: 6px;
+    background: #16a34a;
+    border-radius: 50%;
+    animation: iabounce 1.2s infinite;
+  }
+  .ia-typing span:nth-child(2) { animation-delay: 0.2s; }
+  .ia-typing span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes iabounce {
+    0%,60%,100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-5px); opacity: 1; }
+  }
+
+  #ia-input-area {
+    display: flex;
+    gap: 8px;
+    padding: 12px;
+    border-top: 1px solid #2d2d4e;
+    flex-shrink: 0;
+    background: #1a1a2e;
+  }
+  #ia-input {
+    flex: 1;
+    background: #242444;
+    border: 1px solid #2d2d4e;
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: #e2e8f0;
+    font-size: 13px;
+    outline: none;
+  }
+  #ia-input:focus { border-color: #16a34a; }
+  #ia-input::placeholder { color: #4a5568; }
+  #ia-send {
+    background: #16a34a;
+    border: none;
+    border-radius: 8px;
+    color: white;
+    padding: 8px 14px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: opacity 0.15s;
+  }
+  #ia-send:hover { opacity: 0.85; }
+  #ia-send:disabled { opacity: 0.4; cursor: not-allowed; }
+</style>
 
 <script>
-  const SYSTEM_PROMPT = `Tu es CraftBot, un assistant IA expert des serveurs Minecraft. Tu réponds UNIQUEMENT aux questions liées à Minecraft et aux serveurs Minecraft (plugins, configuration, commandes, performances, mods, Spigot, Paper, Bukkit, Forge, Fabric, WorldGuard, EssentialsX, etc.).
+  const iaHistory = [];
+  let iaLoading = false;
 
-Si la question n'est pas liée à Minecraft ou aux serveurs Minecraft, réponds gentiment que tu es spécialisé uniquement dans Minecraft et redirige l'utilisateur vers une question sur son serveur.
-
-Règles de réponse :
-- Réponds en français
-- Sois précis, pratique et concis
-- Utilise des exemples de commandes quand c'est pertinent (avec des blocs de code)
-- Utilise des emojis Minecraft de temps en temps (⛏️🎮🗡️🛡️📦)
-- Si tu donnes des commandes, mets-les dans des blocs \`code\`
-- Structure tes réponses avec des points si nécessaire`;
-
-  const chat = document.getElementById('chat');
-  const input = document.getElementById('userInput');
-  const btn   = document.getElementById('sendBtn');
-  let isLoading = false;
-
-  // Auto-resize textarea
-  input.addEventListener('input', () => {
-    input.style.height = 'auto';
-    input.style.height = Math.min(input.scrollHeight, 120) + 'px';
-  });
-
-  input.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      if (!isLoading) sendMessage();
+  function toggleIA() {
+    const panel = document.getElementById('ia-panel');
+    panel.classList.toggle('open');
+    if (panel.classList.contains('open')) {
+      document.getElementById('ia-input').focus();
     }
-  });
-
-  function sendChip(el) {
-    input.value = el.textContent.replace(/^[^\s]+\s/, '');
-    sendMessage();
   }
 
-  function addMessage(role, text) {
-    const wrap = document.createElement('div');
-    wrap.className = `message ${role}`;
-
-    const avatar = document.createElement('div');
-    avatar.className = `avatar ${role === 'ai' ? 'ai-avatar' : 'user-avatar'}`;
-    avatar.textContent = role === 'ai' ? '⛏️' : '🧑';
-
-    const bubble = document.createElement('div');
-    bubble.className = 'bubble';
-    bubble.innerHTML = formatText(text);
-
-    wrap.appendChild(avatar);
-    wrap.appendChild(bubble);
-    chat.appendChild(wrap);
-    chat.scrollTop = chat.scrollHeight;
-    return bubble;
+  function iaAddMsg(role, text) {
+    const box = document.getElementById('ia-messages');
+    const div = document.createElement('div');
+    div.className = `ia-msg ${role === 'user' ? 'ia-user' : 'ia-ai'}`;
+    div.textContent = text;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+    return div;
   }
 
-  function formatText(text) {
-    // Bold
-    text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    // Inline code
-    text = text.replace(/`([^`\n]+)`/g, '<code>$1</code>');
-    // Code blocks
-    text = text.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) =>
-      `<pre><code>${escHtml(code.trim())}</code></pre>`
-    );
-    // Newlines
-    text = text.replace(/\n/g, '<br>');
-    return text;
+  function iaShowTyping() {
+    const box = document.getElementById('ia-messages');
+    const div = document.createElement('div');
+    div.className = 'ia-msg ia-ai ia-typing';
+    div.id = 'ia-typing';
+    div.innerHTML = '<span></span><span></span><span></span>';
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
   }
 
-  function escHtml(str) {
-    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  }
-
-  function showTyping() {
-    const wrap = document.createElement('div');
-    wrap.className = 'message ai';
-    wrap.id = 'typing-indicator';
-
-    const avatar = document.createElement('div');
-    avatar.className = 'avatar ai-avatar';
-    avatar.textContent = '⛏️';
-
-    const bubble = document.createElement('div');
-    bubble.className = 'bubble typing';
-    bubble.innerHTML = '<span></span><span></span><span></span>';
-
-    wrap.appendChild(avatar);
-    wrap.appendChild(bubble);
-    chat.appendChild(wrap);
-    chat.scrollTop = chat.scrollHeight;
-  }
-
-  function removeTyping() {
-    const el = document.getElementById('typing-indicator');
+  function iaRemoveTyping() {
+    const el = document.getElementById('ia-typing');
     if (el) el.remove();
   }
 
-  // Historique des messages pour le contexte
-  const history = [];
-
-  async function sendMessage() {
+  async function sendIA() {
+    const input = document.getElementById('ia-input');
     const text = input.value.trim();
-    if (!text || isLoading) return;
+    if (!text || iaLoading) return;
 
-    // Affiche message utilisateur
-    addMessage('user', text);
-    history.push({ role: 'user', content: text });
-
+    iaAddMsg('user', text);
+    iaHistory.push({ role: 'user', content: text });
     input.value = '';
-    input.style.height = 'auto';
-    isLoading = true;
-    btn.disabled = true;
-    showTyping();
+    iaLoading = true;
+    document.getElementById('ia-send').disabled = true;
+    iaShowTyping();
 
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await fetch('/api/ia', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 1000,
-          system: SYSTEM_PROMPT,
-          messages: history
-        })
+        body: JSON.stringify({ messages: iaHistory })
       });
+      const data = await res.json();
+      iaRemoveTyping();
 
-      const data = await response.json();
-      removeTyping();
-
-      if (data.content && data.content[0]) {
-        const reply = data.content[0].text;
-        addMessage('ai', reply);
-        history.push({ role: 'assistant', content: reply });
+      if (data.reply) {
+        iaAddMsg('ai', data.reply);
+        iaHistory.push({ role: 'assistant', content: data.reply });
       } else {
-        addMessage('ai', '❌ Une erreur est survenue. Vérifie ta connexion et réessaie.');
+        iaAddMsg('ai', '❌ Erreur : ' + (data.error || 'Réponse invalide'));
       }
     } catch (err) {
-      removeTyping();
-      addMessage('ai', '❌ Impossible de contacter l\'IA. Vérifie ta connexion internet.');
+      iaRemoveTyping();
+      iaAddMsg('ai', '❌ Impossible de contacter l\'IA.');
     }
 
-    isLoading = false;
-    btn.disabled = false;
+    iaLoading = false;
+    document.getElementById('ia-send').disabled = false;
     input.focus();
   }
 </script>
-</body>
-</html>
